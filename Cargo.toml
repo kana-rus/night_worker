@@ -1,0 +1,17 @@
+[package]
+name          = "night_worker"
+version       = "0.1.0"
+edition       = "2021"
+authors       = ["kanarus <kanarus786@gmail.com>"]
+documentation = "https://docs.rs/night_worker"
+homepage      = "https://crates.io/crates/night_worker"
+repository    = "https://github.com/kana-rus/night_worker"
+readme        = "README.md"
+license       = "MIT"
+description   = "Ergonimic Cloudflare Workers API for nightly Rust, built upon workers-rs"
+keywords      = ["cloudflare", "workers", "wasm", "serverless"]
+categories    = ["api-bindings", "asynchronous", "rust-patterns", "wasm", "web-programming"]
+
+[dependencies]
+worker = { version = "0.1", features = ["d1", "queue"] }
+serde  = { version = "1.0" }
