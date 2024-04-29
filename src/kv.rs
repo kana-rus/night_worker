@@ -1,8 +1,7 @@
 use std::future::{Future, IntoFuture};
 use std::marker::PhantomData;
 use serde::Deserialize;
-use worker::kv::{GetOptionsBuilder, KvError, KvStore, ListOptionsBuilder, ListResponse, PutOptionsBuilder, ToRawKvValue};
-use worker::wasm_bindgen::JsValue;
+use worker::kv::{GetOptionsBuilder, KvStore, ListOptionsBuilder, ListResponse, PutOptionsBuilder, ToRawKvValue};
 use worker::Error;
 
 pub struct KV(pub(crate) KvStore);
@@ -23,13 +22,12 @@ const _: (/* get text */) = {
     }
 
     impl IntoFuture for Get {
-        type Output     = Result<String, Error>;
+        type Output     = Result<Option<String>, Error>;
         type IntoFuture = impl Future<Output = Self::Output>;
 
         fn into_future(self) -> Self::IntoFuture {
             async {
-                self.0.text().await?
-                    .ok_or_else(|| KvError::JavaScript(JsValue::from_str("Specified  `{\"type\": \"text\"}` but not an text")).into())
+                self.0.text().await.map_err(Into::into)
             }
         }
     }
@@ -54,13 +52,12 @@ const _: (/* get json */) = {
     }
 
     impl<T: for<'de> Deserialize<'de>> IntoFuture for GetAs<T> {
-        type Output     = Result<T, Error>;
+        type Output     = Result<Option<T>, Error>;
         type IntoFuture = impl Future<Output = Self::Output>;
 
         fn into_future(self) -> Self::IntoFuture {
             async {
-                self.0.json().await?
-                    .ok_or_else(|| KvError::JavaScript(JsValue::from_str("Specified `{\"type\": \"json\"}` but got `null`")).into())
+                self.0.json().await.map_err(Into::into)
             }
         }
     }
