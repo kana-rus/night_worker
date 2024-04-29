@@ -1,6 +1,6 @@
 [package]
 name          = "night_worker"
-version       = "0.1.0"
+version       = "0.1.0-rc"
 edition       = "2021"
 authors       = ["kanarus <kanarus786@gmail.com>"]
 documentation = "https://docs.rs/night_worker"
@@ -12,6 +12,19 @@ description   = "Ergonimic Cloudflare Workers API for nightly Rust, built upon w
 keywords      = ["cloudflare", "workers", "wasm", "serverless"]
 categories    = ["api-bindings", "asynchronous", "rust-patterns", "wasm", "web-programming"]
 
+[package.metadata.docs.rs]
+features = ["all"]
+
 [dependencies]
-worker = { version = "0.1", features = ["d1", "queue"] }
+worker = { version = "0.1" }
 serde  = { version = "1.0" }
+
+[features]
+d1    = ["worker/d1"]
+queue = ["worker/queue"]
+
+all      = ["d1", "queue"]
+
+### DEBUG ###
+DEBUG    = ["all"]
+default = ["DEBUG"]

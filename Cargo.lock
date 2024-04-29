@@ -247,7 +247,7 @@ dependencies = [
 
 [[package]]
 name = "night_worker"
-version = "0.1.0"
+version = "0.1.0-rc"
 dependencies = [
  "serde",
  "worker",
