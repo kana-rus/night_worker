@@ -1,13 +1,9 @@
-
 use std::future::{Future, IntoFuture};
 use serde::Serialize;
-use worker::send::SendFuture;
 use worker::{Queue as RawQueue, QueueContentType, BatchMessageBuilder, MessageBuilder};
-use crate::Error;
+use worker::Error;
 
 pub struct Queue(pub(crate) RawQueue);
-unsafe impl Send for Queue {}
-unsafe impl Sync for Queue {}
 
 const _: (/* send */) = {
     impl Queue {
@@ -32,14 +28,14 @@ const _: (/* send */) = {
             }
         }
 
-        pub fn text(self) -> Self {
+        pub fn as_text(self) -> Self {
             Self {
                 message: self.message.content_type(QueueContentType::Text),
                 ..self
             }
         }
 
-        pub fn v8(self) -> Self {
+        pub fn as_v8(self) -> Self {
             Self {
                 message: self.message.content_type(QueueContentType::V8),
                 ..self
@@ -49,13 +45,10 @@ const _: (/* send */) = {
 
     impl<'q, M: Serialize + Send> IntoFuture for SendMessage<'q, M> {
         type Output     = Result<(), Error>;
-        type IntoFuture = impl Future<Output = Self::Output> + Send;
+        type IntoFuture = impl Future<Output = Self::Output>;
 
         fn into_future(self) -> Self::IntoFuture {
-            SendFuture::new(async {
-                self.queue.0.send(self.message.build()).await
-                    .map_err(Error::Worker)
-            })
+            self.queue.0.send(self.message.build())
         }
     }
 };
@@ -86,13 +79,10 @@ const _: (/* send */) = {
 
     impl<'q, M: Serialize + Send> IntoFuture for BatchSendMessage<'q, M> {
         type Output     = Result<(), Error>;
-        type IntoFuture = impl Future<Output = Self::Output> + Send;
+        type IntoFuture = impl Future<Output = Self::Output>;
 
         fn into_future(self) -> Self::IntoFuture {
-            SendFuture::new(async {
-                self.queue.0.send_batch(self.messages.build()).await
-                    .map_err(Error::Worker)
-            })
+            self.queue.0.send_batch(self.messages.build())
         }
     }
 };

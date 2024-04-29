@@ -2,13 +2,10 @@ use std::future::{Future, IntoFuture};
 use worker::d1::{D1Database, D1Result, D1PreparedStatement};
 use worker::wasm_bindgen::JsValue;
 use worker::worker_sys::D1ExecResult;
-use worker::send::SendFuture;
+use worker::Error;
 use serde::Deserialize;
-use crate::Error;
 
 pub struct D1(pub(crate) D1Database);
-unsafe impl Send for D1 {}
-unsafe impl Sync for D1 {}
 
 const _: (/* prepared statements */) = {
     impl D1 {
@@ -22,13 +19,11 @@ const _: (/* prepared statements */) = {
             let statements = statements.into_iter().map(|stmt| stmt.0)
                 .collect::<Result<Vec<_>, _>>()?;
             self.0.batch(statements).await
-                .map_err(Error::Worker).map(BatchResult)
+                .map(BatchResult)
         }
     }
 
     pub struct BatchResult(Vec<D1Result>);
-    unsafe impl Send for BatchResult {}
-    unsafe impl Sync for BatchResult {}
 
     impl Iterator for BatchResult {
         type Item = D1Result;
@@ -44,8 +39,6 @@ const _: (/* prepared statements */) = {
     }
 
     pub struct Statement(Result<D1PreparedStatement, Error>);
-    unsafe impl Send for Statement {}
-    unsafe impl Sync for Statement {}
 
     impl Statement {
         pub fn bind(self, arguments: impl Arguments) -> Self {
@@ -62,7 +55,7 @@ const _: (/* prepared statements */) = {
                 impl Arguments for $t {
                     fn bind_to(self, statement: Statement) -> Statement {
                         match statement.0 {
-                            Ok(stmt) => Statement(stmt.bind(&[Into::<JsValue>::into(self)]).map_err(Error::Worker)),
+                            Ok(stmt) => Statement(stmt.bind(&[Into::<JsValue>::into(self)])),
                             Err(err) => Statement(Err(err))
                         }
                     }
@@ -86,7 +79,7 @@ const _: (/* prepared statements */) = {
         impl<J: Into<JsValue>> Arguments for Option<J> {
             fn bind_to(self, statement: Statement) -> Statement {
                 match statement.0 {
-                    Ok(stmt) => Statement(stmt.bind(&[Into::<JsValue>::into(self.map(Into::into))]).map_err(Error::Worker)),
+                    Ok(stmt) => Statement(stmt.bind(&[Into::<JsValue>::into(self.map(Into::into))])),
                     Err(err) => Statement(Err(err))
                 }
             }
@@ -99,7 +92,7 @@ const _: (/* prepared statements */) = {
                     fn bind_to(self, statement: Statement) -> Statement {
                         let ( $( $t, )* ) = self;
                         match statement.0 {
-                            Ok(stmt) => Statement(stmt.bind(&[ $( $t.into() ),*]).map_err(Error::Worker)),
+                            Ok(stmt) => Statement(stmt.bind(&[ $( $t.into() ),*])),
                             Err(err) => Statement(Err(err))
                         }
                     }
@@ -118,24 +111,24 @@ const _: (/* prepared statements */) = {
 
     impl Statement {
         pub async fn all<T: for<'row> Deserialize<'row>>(self) -> Result<Vec<T>, Error> {
-            self.0?.all().await.map_err(Error::Worker)?
-                .results().map_err(Error::Worker)
+            self.0?.all().await?
+                .results()
         }
 
         pub async fn first<T: for<'row> Deserialize<'row>>(self) -> Result<Option<T>, Error> {
-            self.0?.first(None).await.map_err(Error::Worker)
+            self.0?.first(None).await
         }
     }
 
     impl IntoFuture for Statement {
         type Output     = Result<(), Error>;
-        type IntoFuture = impl Future<Output = Self::Output> + Send;
+        type IntoFuture = impl Future<Output = Self::Output>;
 
         fn into_future(self) -> Self::IntoFuture {
-            SendFuture::new(async {
-                self.0?.run().await.map_err(Error::Worker)?;
+            async {
+                self.0?.run().await?;
                 Ok(())
-            })
+            }
         }
     }
 };
@@ -144,13 +137,11 @@ const _: (/* raw exec */) = {
     impl D1 {
         /// SAFETY: `query` has NO problem to be executed as written
         pub async unsafe fn exec(&self, query: &str) -> Result<ExecResult, Error> {
-            self.0.exec(query).await.map_err(Error::Worker).map(ExecResult)
+            self.0.exec(query).await.map(ExecResult)
         }
     }
 
     pub struct ExecResult(D1ExecResult);
-    unsafe impl Send for ExecResult {}
-    unsafe impl Sync for ExecResult {}
 
     impl ExecResult {
         pub fn count(&self) -> Option<u32> {

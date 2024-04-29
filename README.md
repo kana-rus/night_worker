@@ -24,8 +24,8 @@
 
 *Cargo.toml*
 ```toml
-# the same version of 
-# `worker` crate is required
+# The same version of 
+# `worker` crate will be supported
 
 [dependencies]
 worker       = "0.1.0"
@@ -34,23 +34,17 @@ night_worker = "0.1.0-rc"
 
 *src/lib.rs*
 ```rust
-use worker::{Request, Env, Context, Response};
-use night_worker::{Worker, Error};
+use worker::{Request, Env, Context, Result, Response};
+use night_worker::Worker;
 
 #[worker::event(fetch)]
 async fn main(
     req: Request,
     env: Env,
     ctx: Context,
-) -> Result<Response, worker::Error> {
+) -> Result<Response> {
     let w = Worker::take_over(env, ctx);
-    ergonimic_fetch(w, req).await.map_err(Into::into)
-}
-
-async fn ergonimic_fetch(
-    w:   Worker<'_>,
-    req: Request,
-) -> Result<Response, night_worker::Error> {
+    
     let kv = w.KV("MY_KV")?;
 
     kv.put("key1", "value1").await?;
@@ -60,6 +54,8 @@ async fn ergonimic_fetch(
     let value = kv.get("key2").cache_ttl(1024).await?;
 
     let all = kv.list().await?;
-    let all = kv.list().prefix("worker").limit(42).await?;
+    let all = kv.list().prefix("pref").limit(42).await?;
+
+    todo!()
 }
 ```

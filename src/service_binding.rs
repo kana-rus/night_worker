@@ -1,18 +1,14 @@
-use worker::{send::SendFuture, Fetcher, Headers, Method, Request, RequestInit, Response};
-use worker::wasm_bindgen::JsValue;
 use std::future::{Future, IntoFuture};
-use crate::Error;
+use worker::{Fetcher, Headers, Method, Request, RequestInit, Response};
+use worker::wasm_bindgen::JsValue;
+use worker::Error;
 
 pub struct ServiceBinding(pub(crate) Fetcher);
-unsafe impl Send for ServiceBinding {}
-unsafe impl Sync for ServiceBinding {}
 
 const _: (/* direct fetch */) = {
     impl ServiceBinding {
-        pub fn fetch(&self, request: Request) -> impl Future<Output = Result<Response, Error>> + Send + '_ {
-            SendFuture::new(async {
-                self.0.fetch_request(request).await.map_err(Error::Worker)
-            })
+        pub async fn fetch(&self, request: Request) -> Result<Response, Error> {
+            self.0.fetch_request(request).await
         }
     }
 };
@@ -63,12 +59,10 @@ const _: (/* building fetch */) = {
 
     impl<'s> IntoFuture for FetchService<'s> {
         type Output     = Result<Response, Error>;
-        type IntoFuture = impl Future<Output = Self::Output> + Send;
+        type IntoFuture = impl Future<Output = Self::Output>;
 
         fn into_future(self) -> Self::IntoFuture {
-            SendFuture::new(async {
-                self.service.0.fetch(self.url, Some(self.req)).await.map_err(Error::Worker)
-            })
+            self.service.0.fetch(self.url, Some(self.req))
         }
     }
 };
